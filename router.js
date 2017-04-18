@@ -1,24 +1,30 @@
 const express = require( 'express' );
-const lists = require( './lists' );
+const consumers = require( './consumers' );
+const apis = require( './apis' );
 const cors = require( 'cors' );
 const bodyParser = require( 'body-parser' );
 const jsonParser = bodyParser.json();
-require( 'dotenv-safe' ).config();
 
-const app = express();
+const router = express();
 
-app.set( 'view engine', 'html' );
+// router.set( 'view engine', 'html' );
 
 // const server = restify.createServer();
-app.use( cors() );
-app.use( jsonParser );
-app.get(    '/v1.0/lists/tables', lists.createTables );
-app.get(    '/v1.0/lists/:listCode', lists.getList );
-app.put(    '/v1.0/lists/:listCode/items/:itemId', lists.putItem );
-app.delete( '/v1.0/lists/:listCode/items/:itemId', lists.deleteItem );
+router.use( cors() );
+router.use( jsonParser );
+
+// Consumers
+router.get(    '/v1.0/consumers', consumers.getConsumers );
+router.post(   '/v1.0/consumers', consumers.saveConsumer, consumers.createOAuthKeys, consumers.addACL, consumers.saveResponse );
+router.delete( '/v1.0/consumers/:consumerId', consumers.deleteConsumer );
+
+// APIs
+router.get(    '/v1.0/consumers/:consumerId/apis', apis.getApis );
+router.post(   '/v1.0/consumers/:consumerId/apis', apis.saveApi, apis.addOAuth, apis.addRequestTransformer, apis.addACL, apis.saveResponse );
+router.delete( '/v1.0/consumers/:consumerId/apis/:apiId', apis.deleteApi );
 
 // catch 404 and forward to error handler
-app.use( function( req, res, next ) {
+router.use( function( req, res, next ) {
   const err = new Error( 'Not Found' );
   err.status = 404;
   next( err );
@@ -26,8 +32,8 @@ app.use( function( req, res, next ) {
 
 // development error handler
 // will print stacktrace
-if ( app.get( 'env' ) === 'development' ) {
-  app.use( function( err, req, res, next ) {
+if ( router.get( 'env' ) === 'development' ) {
+  router.use( function( err, req, res, next ) {
     res.status( err.status || 500 ).json( {
         message: err.message,
         error: err
@@ -37,14 +43,14 @@ if ( app.get( 'env' ) === 'development' ) {
 
 // production error handler
 // no stacktraces leaked to user
-app.use( function( err, req, res, next ) {
+router.use( function( err, req, res, next ) {
   res.status( err.status || 500 ).json( {
       message: err.message,
       error: {}
   } );
 } );
 
-module.exports = app;
+module.exports = router;
 
 // server.listen( 5000, function() {
 //   console.log( '%s listening at %s', server.name, server.url );
