@@ -1,12 +1,15 @@
+require( 'dotenv-safe' ).config();
 const logger = require( './logger' )( __filename );
 const fetch = require( 'node-fetch' );
 const apiBase = 'https://kong-admin.pprd.rancher1.biw-services.com';
 const sha256 = require( 'js-sha256' );
 const stringUtils = require( './string-utils.js' );
+const simpleOauthModule = require( 'simple-oauth2' );
 
 // const apiBase = 'https://apipprd.biworldwide.com:8001';
 // const redirectUri = 'http://www.biworldwide.com';
 // const FormData = require( 'form-data' );
+console.log( process.env );
 
 module.exports = {
 
@@ -348,8 +351,94 @@ module.exports = {
 
 		}				
 
+	},
+
+	testApiToken: async ( req, res, next ) => {
+
+		logger.info( 'testApiToken request receieved', req.body );
+
+		const tokenConfig = {};
+
+		const oauth2 = simpleOauthModule.create( {
+			client: {
+				id: req.body.clientId,
+				secret: req.body.clientSecret
+			},
+			auth: {
+				tokenHost: process.env.APIGW_BASE_URL,
+				tokenPath: `${ req.body.requestPath }/oauth2/token`
+			}
+		} );
+
+		oauth2.clientCredentials
+			.getToken( tokenConfig )
+			.then( result => {
+				const token = oauth2.accessToken.create( result );
+				res.json( token );
+			} )
+			.catch( error => {
+				console.log( 'Access Token error', error.message );
+				res.json( {
+					code: '00002',
+					messages: [
+						'Access token retrieval failed',
+						error.message
+					],
+					success: false
+				} );		
+			} );
 
 	},
 
+	testApiData: async ( req, res, next ) => {
+
+		logger.info( 'testApiData request receieved', req.body );
+
+		try {
+
+			const apiDataResponse = await fetch( `${ process.env.APIGW_BASE_URL }${ req.body.requestPath }?access_token=${ req.body.accessToken }` );
+			const details = await apiDataResponse.json();
+
+			logger.info( apiDataResponse, details );
+
+			if( apiDataResponse.status === 200 ) {
+
+				res.json( {
+					code: '00000',
+					messages: [
+						'api removed successfully'
+					],
+					success: true,
+					data: details
+				} );
+
+			} else {
+
+				res.json( {
+					code: '00006',
+					messages: [
+						'error retrieving test api data',
+						apiDataResponse.statusText
+					],
+					success: false
+				} );
+
+			}
+
+		} catch( e ) {
+
+			logger.error( 'error in testApiData', e );
+			res.json( {
+				code: '00008',
+				messages: [
+					'error retrieving test api data',
+					JSON.stringify( e )
+				],
+				success: false
+			} );
+
+		}				
+
+	}
 
 };

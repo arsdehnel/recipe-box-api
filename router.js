@@ -23,6 +23,10 @@ router.get(    '/v1.0/consumers/:consumerId/apis', apis.getApis );
 router.post(   '/v1.0/consumers/:consumerId/apis', apis.saveApi, apis.addOAuth, apis.addRequestTransformer, apis.addACL, apis.saveResponse );
 router.delete( '/v1.0/consumers/:consumerId/apis/:apiId', apis.deleteApi );
 
+// Testing
+router.post(   '/v1.0/test-api/token', apis.testApiToken );
+router.post(   '/v1.0/test-api/data', apis.testApiData );
+
 // catch 404 and forward to error handler
 router.use( function( req, res, next ) {
   const err = new Error( 'Not Found' );
